@@ -6,15 +6,18 @@ import { TaskForm } from "@/components/tasks/task-form";
 import userEvent from "@testing-library/user-event";
 
 // Mock the hooks
+const mockCreateMutateAsync = jest.fn().mockResolvedValue({});
+const mockUpdateMutateAsync = jest.fn().mockResolvedValue({});
+
 jest.mock("@/lib/hooks/use-tasks", () => ({
-  useCreateTask: () => ({
-    mutateAsync: jest.fn().mockResolvedValue({}),
+  useCreateTask: jest.fn(() => ({
+    mutateAsync: mockCreateMutateAsync,
     isPending: false,
-  }),
-  useUpdateTask: () => ({
-    mutateAsync: jest.fn().mockResolvedValue({}),
+  })),
+  useUpdateTask: jest.fn(() => ({
+    mutateAsync: mockUpdateMutateAsync,
     isPending: false,
-  }),
+  })),
 }));
 
 const createQueryClient = () => {
@@ -75,13 +78,6 @@ describe("TaskForm", () => {
   });
 
   it("calls onSuccess after successful create", async () => {
-    const { useCreateTask } = require("@/lib/hooks/use-tasks");
-    const mockMutateAsync = jest.fn().mockResolvedValue({});
-    useCreateTask.mockReturnValue({
-      mutateAsync: mockMutateAsync,
-      isPending: false,
-    });
-
     renderWithProviders(
       <TaskForm onCancel={mockOnCancel} onSuccess={mockOnSuccess} />
     );
@@ -91,7 +87,7 @@ describe("TaskForm", () => {
     await userEvent.click(screen.getByText("Create"));
 
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({
+      expect(mockCreateMutateAsync).toHaveBeenCalledWith({
         title: "New Task",
         description: null,
       });
@@ -118,13 +114,6 @@ describe("TaskForm", () => {
   });
 
   it("allows submitting with just title", async () => {
-    const { useCreateTask } = require("@/lib/hooks/use-tasks");
-    const mockMutateAsync = jest.fn().mockResolvedValue({});
-    useCreateTask.mockReturnValue({
-      mutateAsync: mockMutateAsync,
-      isPending: false,
-    });
-
     renderWithProviders(
       <TaskForm onCancel={mockOnCancel} onSuccess={mockOnSuccess} />
     );
@@ -134,7 +123,7 @@ describe("TaskForm", () => {
     await userEvent.click(screen.getByText("Create"));
 
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({
+      expect(mockCreateMutateAsync).toHaveBeenCalledWith({
         title: "Task Without Description",
         description: null,
       });

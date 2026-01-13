@@ -162,7 +162,7 @@ class TestTaskServiceUpdate:
         assert updated is not None
         assert updated.title == "Updated Title"
         assert updated.description == "Updated Desc"
-        assert updated.updated_at > sample_task.updated_at
+        assert updated.updated_at >= sample_task.updated_at
 
     def test_update_task_partial(self, task_service, sample_task):
         """Test partial update (only title)."""

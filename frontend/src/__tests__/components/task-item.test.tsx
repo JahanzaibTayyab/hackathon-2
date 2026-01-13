@@ -6,15 +6,28 @@ import { TaskItem } from "@/components/tasks/task-item";
 import userEvent from "@testing-library/user-event";
 
 // Mock the hooks
+const mockToggleMutateAsync = jest.fn().mockResolvedValue({});
+const mockDeleteMutateAsync = jest.fn().mockResolvedValue({});
+const mockCreateMutateAsync = jest.fn().mockResolvedValue({});
+const mockUpdateMutateAsync = jest.fn().mockResolvedValue({});
+
 jest.mock("@/lib/hooks/use-tasks", () => ({
-  useToggleComplete: () => ({
-    mutateAsync: jest.fn().mockResolvedValue({}),
+  useToggleComplete: jest.fn(() => ({
+    mutateAsync: mockToggleMutateAsync,
     isPending: false,
-  }),
-  useDeleteTask: () => ({
-    mutateAsync: jest.fn().mockResolvedValue({}),
+  })),
+  useDeleteTask: jest.fn(() => ({
+    mutateAsync: mockDeleteMutateAsync,
     isPending: false,
-  }),
+  })),
+  useCreateTask: jest.fn(() => ({
+    mutateAsync: mockCreateMutateAsync,
+    isPending: false,
+  })),
+  useUpdateTask: jest.fn(() => ({
+    mutateAsync: mockUpdateMutateAsync,
+    isPending: false,
+  })),
 }));
 
 const createQueryClient = () => {
@@ -63,19 +76,14 @@ describe("TaskItem", () => {
   });
 
   it("calls toggle complete when check button is clicked", async () => {
-    const { useToggleComplete } = require("@/lib/hooks/use-tasks");
-    const mockMutateAsync = jest.fn().mockResolvedValue({});
-    useToggleComplete.mockReturnValue({
-      mutateAsync: mockMutateAsync,
-      isPending: false,
-    });
-
     renderWithProviders(<TaskItem task={mockTask} />);
-    const checkButton = screen.getByRole("button", { name: /check/i });
+    // The check button is the first button in the component
+    const buttons = screen.getAllByRole("button");
+    const checkButton = buttons[0];
     await userEvent.click(checkButton);
 
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({
+      expect(mockToggleMutateAsync).toHaveBeenCalledWith({
         id: 1,
         data: { completed: true },
       });
@@ -83,40 +91,25 @@ describe("TaskItem", () => {
   });
 
   it("calls delete when delete button is clicked and confirmed", async () => {
-    const { useDeleteTask } = require("@/lib/hooks/use-tasks");
-    const mockMutateAsync = jest.fn().mockResolvedValue({});
-    useDeleteTask.mockReturnValue({
-      mutateAsync: mockMutateAsync,
-      isPending: false,
-    });
-
     renderWithProviders(<TaskItem task={mockTask} />);
-    const deleteButton = screen
-      .getAllByRole("button")
-      .find((btn) =>
-        btn.querySelector("svg")?.getAttribute("class")?.includes("Trash2")
-      );
+    // Buttons order: check (0), edit (1), delete (2)
+    const buttons = screen.getAllByRole("button");
+    const deleteButton = buttons[2];
 
-    if (deleteButton) {
-      await userEvent.click(deleteButton);
-      await waitFor(() => {
-        expect(window.confirm).toHaveBeenCalled();
-        expect(mockMutateAsync).toHaveBeenCalledWith(1);
-      });
-    }
+    await userEvent.click(deleteButton);
+    await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalled();
+      expect(mockDeleteMutateAsync).toHaveBeenCalledWith(1);
+    });
   });
 
   it("shows edit form when edit button is clicked", async () => {
     renderWithProviders(<TaskItem task={mockTask} />);
-    const editButton = screen
-      .getAllByRole("button")
-      .find((btn) =>
-        btn.querySelector("svg")?.getAttribute("class")?.includes("Edit2")
-      );
+    // Buttons order: check (0), edit (1), delete (2)
+    const buttons = screen.getAllByRole("button");
+    const editButton = buttons[1];
 
-    if (editButton) {
-      await userEvent.click(editButton);
-      expect(screen.getByText("Edit Task")).toBeInTheDocument();
-    }
+    await userEvent.click(editButton);
+    expect(screen.getByText("Edit Task")).toBeInTheDocument();
   });
 });
