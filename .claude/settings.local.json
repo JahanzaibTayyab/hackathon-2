@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv pip install:*)",
+      "Bash(pnpm test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix flaky and broken tests in frontend and backend\n\n- Backend: Change updated_at assertion from > to >= to fix timing race condition\n- Frontend: Exclude e2e/ folder from Jest \\(runs with Playwright separately\\)\n- Frontend: Fix mock setup to use jest.fn\\(\\) wrappers for proper test assertions\n- Frontend: Update button selectors to use index instead of inaccessible names\n- Frontend: Add missing useCreateTask/useUpdateTask mocks for TaskForm in edit mode\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(cat:*)",
+      "WebSearch",
+      "WebFetch(domain:openai.github.io)",
+      "WebFetch(domain:modelcontextprotocol.github.io)",
+      "Bash(pip install:*)",
+      "Bash(uv run:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm dlx:*)",
+      "Bash(pkill:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:ai.google.dev)"
+    ]
+  }
+}

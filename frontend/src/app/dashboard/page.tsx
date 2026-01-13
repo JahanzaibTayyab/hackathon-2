@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Plus } from "lucide-react";
+import { LogOut, MessageSquare, Plus } from "lucide-react";
 import type { TaskOrder, TaskSort, TaskStatus } from "@/types/task";
 import { useEffect, useState } from "react";
 
@@ -10,6 +10,7 @@ import { TaskFilters } from "@/components/tasks/task-filters";
 import { TaskForm } from "@/components/tasks/task-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { authClient } from "@/lib/auth-client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTasks } from "@/lib/hooks/use-tasks";
 
@@ -53,10 +54,18 @@ export default function DashboardPage() {
               Manage your tasks and stay organized
             </p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/chat">
+              <Button variant="outline">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                AI Chat
+              </Button>
+            </Link>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         <div className="mb-6 space-y-4">

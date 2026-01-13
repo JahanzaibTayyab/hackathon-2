@@ -6,7 +6,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.v1 import tasks
+from src.api.v1 import chat, tasks
 from src.core.config import settings
 from src.core.database import create_db_and_tables
 
@@ -43,6 +43,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(tasks.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/api/v1")
 
 
 @app.get("/")

@@ -18,6 +18,9 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "python-dotenv>=1.0.1",
     "cryptography>=46.0.3",
+    # Phase 3: AI Chatbot dependencies
+    "openai-agents>=0.6.0",
+    "mcp>=1.25.0,<2.0.0",
 ]
 
 [project.optional-dependencies]
