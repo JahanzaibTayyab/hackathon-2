@@ -1,0 +1,37 @@
+# Dapr Subscriptions - Route Kafka messages to application endpoints
+---
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: task-events-subscription
+  namespace: default
+spec:
+  pubsubname: taskpubsub
+  topic: task-events
+  route: /api/v1/events/tasks
+  scopes:
+    - backend
+---
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: reminders-subscription
+  namespace: default
+spec:
+  pubsubname: taskpubsub
+  topic: reminders
+  route: /api/v1/events/reminders
+  scopes:
+    - backend
+---
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: task-updates-subscription
+  namespace: default
+spec:
+  pubsubname: taskpubsub
+  topic: task-updates
+  route: /api/v1/events/task-updates
+  scopes:
+    - backend

@@ -1,0 +1,45 @@
+# Kafka Topics for Todo App Event System
+# These topics are created by the Strimzi Topic Operator
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: task-events
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: todo-kafka
+spec:
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 604800000  # 7 days retention
+    cleanup.policy: delete
+    segment.bytes: 1073741824  # 1GB segments
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: reminders
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: todo-kafka
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    retention.ms: 86400000  # 24 hours retention
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: task-updates
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: todo-kafka
+spec:
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 3600000  # 1 hour retention (real-time sync)
+    cleanup.policy: delete

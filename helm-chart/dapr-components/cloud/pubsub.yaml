@@ -1,0 +1,51 @@
+# Dapr Pub/Sub Component - Cloud Kafka (Redpanda Cloud) Configuration
+# Uses SASL authentication with TLS for secure connection
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: taskpubsub
+  namespace: default
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker address (from Kubernetes secret)
+    - name: brokers
+      secretKeyRef:
+        name: kafka-secrets
+        key: brokers
+    # Consumer group for todo-app
+    - name: consumerGroup
+      value: "todo-app-consumer"
+    # SASL Authentication
+    - name: authType
+      value: "password"
+    - name: saslUsername
+      secretKeyRef:
+        name: kafka-secrets
+        key: username
+    - name: saslPassword
+      secretKeyRef:
+        name: kafka-secrets
+        key: password
+    # SASL mechanism for Redpanda Cloud
+    - name: saslMechanism
+      value: "SCRAM-SHA-256"
+    # Enable TLS for secure connection
+    - name: tls
+      value: "true"
+    # Skip TLS verification if using self-signed certs (not recommended for production)
+    - name: skipVerify
+      value: "false"
+    # Message settings
+    - name: maxMessageBytes
+      value: "1048576"  # 1MB max message size
+    - name: clientID
+      value: "todo-app-dapr-cloud"
+    # Consumer settings
+    - name: initialOffset
+      value: "newest"
+    - name: consumeRetryInterval
+      value: "100ms"
+scopes:
+  - backend  # Only backend service uses pub/sub

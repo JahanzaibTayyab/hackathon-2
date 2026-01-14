@@ -1,0 +1,32 @@
+# Dapr Pub/Sub Component - Kafka Configuration
+# Connects to Strimzi Kafka cluster for event-driven messaging
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: taskpubsub
+  namespace: default
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker address (internal Kubernetes DNS)
+    - name: brokers
+      value: "todo-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+    # Consumer group for todo-app
+    - name: consumerGroup
+      value: "todo-app-consumer"
+    # No authentication for local development
+    - name: authType
+      value: "none"
+    # Message settings
+    - name: maxMessageBytes
+      value: "1048576"  # 1MB max message size
+    - name: clientID
+      value: "todo-app-dapr"
+    # Consumer settings
+    - name: initialOffset
+      value: "newest"
+    - name: consumeRetryInterval
+      value: "100ms"
+scopes:
+  - backend  # Only backend service uses pub/sub

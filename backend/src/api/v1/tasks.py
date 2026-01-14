@@ -1,12 +1,17 @@
 """Task API endpoints."""
 
+import logging
 from datetime import datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from fastapi import APIRouter, HTTPException, Query, status
+if TYPE_CHECKING:
+    from src.models.task import Task
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 
 from src.core.database import SessionDep
 from src.core.dependencies import CurrentUserDep
+from src.events.producer import event_producer
 from src.schemas.task import (
     PriorityType,
     TaskComplete,
@@ -17,7 +22,17 @@ from src.schemas.task import (
 )
 from src.services.task_service import TaskService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+
+async def _publish_event_safe(coro):
+    """Safely execute an event publishing coroutine, logging any errors."""
+    try:
+        await coro
+    except Exception as e:
+        logger.error(f"Failed to publish event: {e}")
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -25,6 +40,7 @@ async def create_task(
     task_data: TaskCreate,
     session: SessionDep,
     user_id: CurrentUserDep,
+    background_tasks: BackgroundTasks,
 ) -> TaskResponse:
     """
     Create a new task.
@@ -33,13 +49,26 @@ async def create_task(
         task_data: Task creation data (including optional due_date, priority, tags, recurrence)
         session: Database session
         user_id: Current authenticated user ID
+        background_tasks: Background task runner
 
     Returns:
         Created task
     """
     service = TaskService(session, user_id)
     task = service.create_task(task_data)
-    return TaskResponse.from_task(task)
+    response = TaskResponse.from_task(task)
+
+    # Publish event in background
+    background_tasks.add_task(
+        _publish_event_safe,
+        event_producer.publish_task_created(
+            task_id=task.id,
+            user_id=user_id,
+            data=task_data.model_dump(mode="json")
+        )
+    )
+
+    return response
 
 
 @router.get("", response_model=TaskListResponse)
@@ -159,6 +188,7 @@ async def update_task(
     task_data: TaskUpdate,
     session: SessionDep,
     user_id: CurrentUserDep,
+    background_tasks: BackgroundTasks,
 ) -> TaskResponse:
     """
     Update task by ID.
@@ -168,6 +198,7 @@ async def update_task(
         task_data: Task update data (including optional due_date, priority, tags, recurrence)
         session: Database session
         user_id: Current authenticated user ID
+        background_tasks: Background task runner
 
     Returns:
         Updated task
@@ -182,7 +213,20 @@ async def update_task(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found",
         )
-    return TaskResponse.from_task(task)
+
+    response = TaskResponse.from_task(task)
+
+    # Publish event in background
+    background_tasks.add_task(
+        _publish_event_safe,
+        event_producer.publish_task_updated(
+            task_id=task_id,
+            user_id=user_id,
+            data=task_data.model_dump(mode="json", exclude_unset=True)
+        )
+    )
+
+    return response
 
 
 class ToggleCompleteResponse(TaskResponse):
@@ -190,12 +234,24 @@ class ToggleCompleteResponse(TaskResponse):
 
     next_task: TaskResponse | None = None
 
+    @classmethod
+    def from_task_with_next(
+        cls, task: "Task", next_task: "Task | None" = None  # noqa: F821
+    ) -> "ToggleCompleteResponse":
+        """Create response from task with optional next recurring task."""
+        base = TaskResponse.from_task(task)
+        return cls(
+            **base.model_dump(),
+            next_task=TaskResponse.from_task(next_task) if next_task else None
+        )
+
 
 @router.patch("/{task_id}/complete", response_model=ToggleCompleteResponse)
 async def toggle_complete(
     task_id: int,
     session: SessionDep,
     user_id: CurrentUserDep,
+    background_tasks: BackgroundTasks,
     task_data: TaskComplete = TaskComplete(),
 ) -> ToggleCompleteResponse:
     """
@@ -208,6 +264,7 @@ async def toggle_complete(
         task_data: Completion data (optional)
         session: Database session
         user_id: Current authenticated user ID
+        background_tasks: Background task runner
 
     Returns:
         Updated task, with next_task if recurring
@@ -223,9 +280,20 @@ async def toggle_complete(
             detail="Task not found",
         )
 
-    response = ToggleCompleteResponse.from_task(task)
-    if next_task:
-        response.next_task = TaskResponse.from_task(next_task)
+    response = ToggleCompleteResponse.from_task_with_next(task, next_task)
+
+    # Publish event in background
+    if task.completed:
+        background_tasks.add_task(
+            _publish_event_safe,
+            event_producer.publish_task_completed(task_id=task_id, user_id=user_id)
+        )
+    else:
+        background_tasks.add_task(
+            _publish_event_safe,
+            event_producer.publish_task_uncompleted(task_id=task_id, user_id=user_id)
+        )
+
     return response
 
 
@@ -234,15 +302,17 @@ async def delete_task(
     task_id: int,
     session: SessionDep,
     user_id: CurrentUserDep,
+    background_tasks: BackgroundTasks,
 ) -> None:
     """
     Delete task by ID.
-    
+
     Args:
         task_id: Task ID
         session: Database session
         user_id: Current authenticated user ID
-        
+        background_tasks: Background task runner
+
     Raises:
         HTTPException: If task not found or doesn't belong to user
     """
@@ -253,3 +323,9 @@ async def delete_task(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found",
         )
+
+    # Publish event in background
+    background_tasks.add_task(
+        _publish_event_safe,
+        event_producer.publish_task_deleted(task_id=task_id, user_id=user_id)
+    )

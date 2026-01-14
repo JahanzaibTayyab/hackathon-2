@@ -1,0 +1,107 @@
+# Staging Environment Values Override
+# Used by CI/CD for staging deployments
+
+# Frontend configuration for staging
+frontend:
+  replicaCount: 1
+  image:
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 3000
+    targetPort: 3000
+  env:
+    - name: NODE_ENV
+      value: "staging"
+    - name: NEXT_PUBLIC_API_URL
+      value: "http://backend-service:8000"
+    - name: BETTER_AUTH_URL
+      valueFrom:
+        configMapKeyRef:
+          name: todo-config
+          key: frontend-url
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: database-url
+    - name: BETTER_AUTH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: auth-secret
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Backend configuration for staging
+backend:
+  replicaCount: 1
+  image:
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  env:
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: database-url
+    - name: BETTER_AUTH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: auth-secret
+    - name: OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: openai-api-key
+    - name: CORS_ORIGINS
+      value: "*"  # More permissive for staging
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Dapr enabled for staging
+dapr:
+  enabled: true
+  backend:
+    appId: "backend"
+    appPort: "8000"
+    enableMtls: "true"
+    logLevel: "debug"  # More verbose logging for staging
+  frontend:
+    appId: "frontend"
+    appPort: "3000"
+    enableMtls: "true"
+    logLevel: "debug"
+
+# Kafka enabled for staging
+kafka:
+  enabled: true
+  brokers: ""  # Set via secrets
+  topics:
+    events: "task-events"
+    reminders: "reminders"
+    updates: "task-updates"
+
+# Pod labels for staging
+podLabels:
+  app: todo-app
+  version: phase-5
+  environment: staging
+
+# Autoscaling disabled for staging
+autoscaling:
+  enabled: false

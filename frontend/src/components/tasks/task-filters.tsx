@@ -143,16 +143,16 @@ export function TaskFilters({
             <div className="space-y-2">
               <Label>Priority</Label>
               <Select
-                value={filters.priority || ""}
+                value={filters.priority || "any"}
                 onValueChange={(v) =>
-                  updateFilter("priority", v ? (v as TaskPriority) : undefined)
+                  updateFilter("priority", v === "any" ? undefined : (v as TaskPriority))
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Any priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any priority</SelectItem>
+                  <SelectItem value="any">Any priority</SelectItem>
                   <SelectItem value="urgent">Urgent</SelectItem>
                   <SelectItem value="high">High</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>

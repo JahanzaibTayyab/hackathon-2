@@ -1,0 +1,119 @@
+# Production Environment Values Override
+# Used by CI/CD for production deployments
+
+# Frontend configuration for production
+frontend:
+  replicaCount: 2  # Multiple replicas for HA
+  image:
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 3000
+    targetPort: 3000
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: NEXT_PUBLIC_API_URL
+      value: "http://backend-service:8000"
+    - name: BETTER_AUTH_URL
+      valueFrom:
+        configMapKeyRef:
+          name: todo-config
+          key: frontend-url
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: database-url
+    - name: BETTER_AUTH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: auth-secret
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+# Backend configuration for production
+backend:
+  replicaCount: 2  # Multiple replicas for HA
+  image:
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  env:
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: database-url
+    - name: BETTER_AUTH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: auth-secret
+    - name: OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: todo-secrets
+          key: openai-api-key
+    - name: CORS_ORIGINS
+      valueFrom:
+        configMapKeyRef:
+          name: todo-config
+          key: cors-origins
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+# Dapr enabled for production
+dapr:
+  enabled: true
+  backend:
+    appId: "backend"
+    appPort: "8000"
+    enableMtls: "true"
+    logLevel: "info"  # Less verbose for production
+  frontend:
+    appId: "frontend"
+    appPort: "3000"
+    enableMtls: "true"
+    logLevel: "info"
+
+# Kafka enabled for production
+kafka:
+  enabled: true
+  brokers: ""  # Set via secrets
+  topics:
+    events: "task-events"
+    reminders: "reminders"
+    updates: "task-updates"
+
+# Pod labels for production
+podLabels:
+  app: todo-app
+  version: phase-5
+  environment: production
+
+# Autoscaling enabled for production
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod disruption budget for production
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

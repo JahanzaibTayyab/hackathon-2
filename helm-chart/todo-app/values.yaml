@@ -182,3 +182,28 @@ autoscaling:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Dapr Configuration
+dapr:
+  enabled: false  # Set to true when Dapr is installed
+  # Backend Dapr sidecar configuration
+  backend:
+    appId: "backend"
+    appPort: "8000"
+    enableMtls: "true"
+    logLevel: "info"
+  # Frontend Dapr sidecar configuration (optional)
+  frontend:
+    appId: "frontend"
+    appPort: "3000"
+    enableMtls: "true"
+    logLevel: "info"
+
+# Kafka Configuration (when using Dapr with Kafka)
+kafka:
+  enabled: false
+  brokers: "todo-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+  topics:
+    events: "task-events"
+    reminders: "reminders"
+    updates: "task-updates"
