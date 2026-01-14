@@ -1,234 +1,210 @@
-# Todo Full-Stack Web Application - Phase 2
+# Todo Full-Stack Web Application
 
-A modern, multi-user full-stack todo application built with Next.js, FastAPI, and PostgreSQL.
+A modern, cloud-native, full-stack todo application built with Next.js, FastAPI, and PostgreSQL. Features AI-powered task management, event-driven architecture with Dapr + Kafka, and Kubernetes deployment.
 
-## 🚀 Quick Start
+## Features
+
+- **Task Management**: Create, read, update, delete tasks with advanced filtering
+- **AI Chatbot**: Natural language task management using OpenAI Agents SDK
+- **Advanced Features**: Priority levels, tags, due dates, recurring tasks
+- **Event-Driven**: Real-time events via Dapr pub/sub and Kafka
+- **Cloud-Native**: Kubernetes deployment with Helm charts
+- **CI/CD**: Automated deployments via GitHub Actions
+
+## Quick Start
 
 ### Prerequisites
 
-- Node.js (latest LTS)
+- Node.js 20+ (LTS)
 - Python 3.11+
 - pnpm (`npm install -g pnpm`)
 - UV (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - Neon PostgreSQL account
 
-### Installation
+### Local Development
 
-1. **Clone the repository**
-
+1. **Clone and setup**
    ```bash
    git clone <repository-url>
    cd hackathon-2
    ```
 
-2. **Environment Variables**
-
-   - Backend: `.env` file is already configured
-   - Frontend: `.env.local` file is already configured
-   - Both use the same `BETTER_AUTH_SECRET` for JWT verification
-
-3. **Create Database Tables**
-
-   **Backend (Tasks Table):**
-
+2. **Backend**
    ```bash
    cd backend
+   uv sync
    uv run python scripts/create_tables.py
-   ```
-
-   **Frontend (Better Auth Tables):**
-
-   ```bash
-   cd frontend
-   pnpm db:check  # Verify connection
-   # Tables will be created automatically on first use
-   ```
-
-4. **Start the Servers**
-
-   **Backend:**
-
-   ```bash
-   cd backend
    uv run uvicorn src.main:app --reload --port 8000
    ```
 
-   Backend will run on http://localhost:8000
-
-   **Frontend:**
-
+3. **Frontend**
    ```bash
    cd frontend
+   pnpm install
    pnpm dev
    ```
 
-   Frontend will run on http://localhost:3000
+Access the app at http://localhost:3000
 
-## Features
+### Kubernetes Deployment (Minikube)
 
-- ✅ User authentication (signup, login, logout) with Better Auth
-- ✅ Create, read, update, and delete tasks
-- ✅ Mark tasks as complete/incomplete
-- ✅ Filter tasks by status (all, pending, completed)
-- ✅ Sort tasks by created date, title, or updated date
-- ✅ User isolation (each user sees only their tasks)
-- ✅ Responsive design (mobile and desktop)
-- ✅ Modern UI with shadcn/ui components
+```bash
+# Install prerequisites: minikube, kubectl, helm, dapr CLI
+
+# Run setup script
+./scripts/setup-dapr-kafka.sh --deploy-app
+```
 
 ## Tech Stack
 
 ### Frontend
-
-- **Framework**: Next.js 16+ (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Authentication**: Better Auth with JWT
-- **State Management**: React Query
-- **Package Manager**: pnpm
+- **UI**: shadcn/ui, Tailwind CSS
+- **Auth**: Better Auth with JWT
+- **State**: React Query (TanStack Query)
 
 ### Backend
-
-- **Framework**: FastAPI (latest)
+- **Framework**: FastAPI
 - **Language**: Python 3.11+
 - **ORM**: SQLModel
-- **Authentication**: JWT verification
-- **Package Manager**: UV
+- **AI**: OpenAI Agents SDK
+- **Events**: Dapr pub/sub
 
-### Database
-
-- **Database**: Neon Serverless PostgreSQL
-- **Auth Tables**: Managed by Better Auth (user, session, account, etc.)
-- **Task Tables**: Managed by backend (tasks)
+### Infrastructure
+- **Database**: Neon PostgreSQL (serverless)
+- **Message Broker**: Apache Kafka (Strimzi/Redpanda)
+- **Service Mesh**: Dapr
+- **Orchestration**: Kubernetes (Minikube/AKS)
+- **CI/CD**: GitHub Actions
 
 ## Project Structure
 
 ```
 hackathon-2/
-├── frontend/          # Next.js application
+├── frontend/              # Next.js application
 │   ├── src/
-│   │   ├── app/      # App Router pages
-│   │   ├── components/  # React components
-│   │   ├── lib/      # Utilities and hooks
-│   │   └── types/    # TypeScript types
-│   ├── auth-schema.ts  # Better Auth database schema
-│   └── .env.local    # Environment variables
-├── backend/           # FastAPI application
+│   │   ├── app/          # App Router pages
+│   │   ├── components/   # React components (tasks, chat, ui)
+│   │   └── lib/          # Utilities, hooks, API clients
+│   └── .env.local        # Environment variables
+├── backend/               # FastAPI application
 │   ├── src/
-│   │   ├── api/      # API routes
-│   │   ├── models/   # Database models
-│   │   ├── schemas/  # Pydantic schemas
-│   │   ├── core/     # Core functionality
-│   │   └── services/ # Business logic
-│   └── .env          # Environment variables
-├── specs/            # Specification documents
-└── README.md
+│   │   ├── api/v1/       # API routes (tasks, chat, events)
+│   │   ├── models/       # SQLModel database models
+│   │   ├── schemas/      # Pydantic request/response schemas
+│   │   ├── services/     # Business logic
+│   │   ├── agent/        # AI agent (OpenAI)
+│   │   ├── events/       # Event schemas and producer
+│   │   └── core/         # Config, database, security, Dapr
+│   └── .env              # Environment variables
+├── helm-chart/            # Kubernetes Helm charts
+│   ├── todo-app/         # Application chart
+│   ├── kafka/            # Strimzi Kafka configs
+│   └── dapr-components/  # Dapr pub/sub configs
+├── scripts/               # Setup and deployment scripts
+├── docs/                  # Documentation
+│   ├── architecture.md   # System architecture
+│   ├── kafka-topics.md   # Event schemas
+│   ├── dapr-setup.md     # Dapr installation guide
+│   └── cicd.md           # CI/CD pipeline docs
+└── .github/workflows/     # GitHub Actions CI/CD
 ```
 
 ## API Documentation
 
-Once the backend is running, visit:
-
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
+### Task Endpoints (`/api/v1/tasks`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /tasks | List tasks with filtering/sorting |
+| POST | /tasks | Create task |
+| GET | /tasks/{id} | Get task |
+| PUT | /tasks/{id} | Update task |
+| PATCH | /tasks/{id}/complete | Toggle completion |
+| DELETE | /tasks/{id} | Delete task |
+| GET | /tags | Get all user tags |
+
+### Chat Endpoints (`/api/v1/chat`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /chat | Send message to AI |
+| GET | /chat/conversations | List conversations |
+| GET | /chat/conversations/{id} | Get conversation |
+| DELETE | /chat/conversations/{id} | Delete conversation |
+
+### Event Endpoints (`/api/v1/events`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /events/tasks | Handle task events (Dapr) |
+| POST | /events/reminders | Handle reminder events (Dapr) |
+| POST | /events/task-updates | Handle sync events (Dapr) |
+
 ## Development
 
-### Frontend Development
-
+### Frontend
 ```bash
 cd frontend
-pnpm dev          # Start development server
-pnpm build        # Build for production
-pnpm test         # Run tests
-pnpm db:check     # Check database connection
+pnpm dev              # Development server
+pnpm build            # Production build
+pnpm test             # Jest unit tests
+pnpm test:e2e         # Playwright E2E tests
 ```
 
-### Backend Development
-
+### Backend
 ```bash
 cd backend
-uv run uvicorn src.main:app --reload  # Start development server
-uv run pytest                         # Run tests
-uv run python scripts/create_tables.py  # Create tables
+uv run uvicorn src.main:app --reload  # Dev server
+uv run pytest                          # All tests
+uv run pytest --cov                    # With coverage
+uv run ruff check src                  # Lint
 ```
-
-## Security
-
-- ✅ Database credentials stored in `.env` files (not committed)
-- ✅ JWT tokens signed with shared secret
-- ✅ User isolation enforced at database level
-- ✅ CORS configured for frontend domain only
-- ✅ Input validation on all endpoints
 
 ## Environment Variables
 
 ### Backend (`.env`)
-
-- `DATABASE_URL` - Neon PostgreSQL connection string
-- `BETTER_AUTH_SECRET` - JWT signing secret (must match frontend)
-- `JWT_ALGORITHM` - HS256
-- `CORS_ORIGINS` - http://localhost:3000
-
-### Frontend (`.env.local`)
-
-- `DATABASE_URL` - Neon PostgreSQL connection (server-side only)
-- `BETTER_AUTH_SECRET` - JWT signing secret (must match backend)
-- `NEXT_PUBLIC_BASE_URL` - http://localhost:3000
-- `NEXT_PUBLIC_API_URL` - http://localhost:8000
-
-## Testing
-
-### Frontend Tests
-
-```bash
-cd frontend
-pnpm test              # Unit tests
-pnpm test:e2e          # E2E tests (Playwright)
+```
+DATABASE_URL=postgresql://...
+BETTER_AUTH_SECRET=your-secret
+OPENAI_API_KEY=sk-...
+CORS_ORIGINS=http://localhost:3000
+DAPR_ENABLED=false
 ```
 
-### Backend Tests
-
-```bash
-cd backend
-uv run pytest                    # All tests
-uv run pytest tests/unit         # Unit tests only
-uv run pytest tests/integration  # Integration tests only
-uv run pytest --cov              # With coverage
+### Frontend (`.env.local`)
+```
+DATABASE_URL=postgresql://...
+BETTER_AUTH_SECRET=your-secret
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 ## Deployment
 
-### Frontend (Vercel)
+### Local (Minikube + Dapr + Kafka)
+```bash
+./scripts/setup-dapr-kafka.sh --deploy-app
+```
 
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy
+### Cloud (Azure AKS)
+See [CI/CD Documentation](docs/cicd.md) for GitHub Actions deployment.
 
-### Backend (Railway/Render/Fly.io)
+## Documentation
 
-1. Create a new project
-2. Connect your GitHub repository
-3. Set environment variables
-4. Deploy
+- [Architecture](docs/architecture.md) - System design and diagrams
+- [Kafka Topics](docs/kafka-topics.md) - Event schemas and topics
+- [Dapr Setup](docs/dapr-setup.md) - Dapr installation guide
+- [CI/CD](docs/cicd.md) - Pipeline and deployment docs
 
-## Project Timeline
+## Project Phases
 
-This project was built following Spec-Driven Development using Claude Code:
-
-1. ✅ Phase 1: Project Setup & Infrastructure
-2. ✅ Phase 2: Authentication Foundation
-3. ✅ Phase 3: Database Models & Migrations
-4. ✅ Phase 4: Backend API Implementation
-5. ✅ Phase 5: Frontend API Client & State Management
-6. ✅ Phase 6: Frontend UI Components
-7. ✅ Phase 7: Frontend Pages & Integration
-8. ⏳ Phase 8: Testing & Quality Assurance
+1. ✅ Phase 1: In-Memory Console App
+2. ✅ Phase 2: Full-Stack Web (Next.js + FastAPI)
+3. ✅ Phase 3: AI Chatbot (OpenAI Agents SDK)
+4. ✅ Phase 4: Kubernetes Deployment
+5. ✅ Phase 5: Cloud Deployment (Dapr + Kafka + CI/CD)
 
 ## License
 
 MIT
-
-## Contributing
-
-This project was created as part of a hackathon following spec-driven development principles.
