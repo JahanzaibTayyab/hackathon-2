@@ -51,7 +51,12 @@
       "Bash(lsof:*)",
       "Bash(# List available E2E tests ls -la /Users/zaib/Panaverse/hackathon-2/frontend/tests/e2e/ || ls -la /Users/zaib/Panaverse/hackathon-2/frontend/e2e/ || find /Users/zaib/Panaverse/hackathon-2/frontend -name \"\"*.spec.ts\"\" -o -name \"\"*.e2e.ts\"\")",
       "Bash(chmod:*)",
-      "Bash(./scripts/setup-dapr-kafka.sh:*)"
+      "Bash(./scripts/setup-dapr-kafka.sh:*)",
+      "Bash(dapr:*)",
+      "Bash(/bin/bash)",
+      "Bash(export PATH=\"$HOME/.dapr/bin:$PATH\")",
+      "Bash(kubectl create:*)",
+      "Bash(kubectl wait:*)"
     ]
   }
 }
