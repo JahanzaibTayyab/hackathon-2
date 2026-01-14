@@ -1,0 +1,17 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "todo-app.fullname" . }}-test-connection"
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "todo-app.fullname" . }}-frontend:{{ .Values.frontend.service.port }}']
+  restartPolicy: Never
+{{- end }}

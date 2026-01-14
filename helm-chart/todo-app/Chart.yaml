@@ -1,0 +1,17 @@
+apiVersion: v2
+name: todo-app
+description: Phase IV - Kubernetes deployment of Todo application with AI chatbot
+type: application
+version: 0.1.0
+appVersion: "phase-4"
+
+keywords:
+  - todo
+  - kubernetes
+  - nextjs
+  - fastapi
+  - ai-chatbot
+
+maintainers:
+  - name: Hackathon Team
+    email: team@hackathon.local
