@@ -50,6 +50,8 @@ def sample_task_fixture(session: Session, user_id: str):
         title="Test Task",
         description="Test Description",
         completed=False,
+        priority="medium",
+        tags=[],
     )
     session.add(task)
     session.commit()

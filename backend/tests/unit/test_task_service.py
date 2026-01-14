@@ -29,6 +29,22 @@ class TestTaskServiceCreate:
         assert task.description is None
         assert task.user_id == user_id
 
+    def test_create_task_with_priority(self, task_service, user_id):
+        """Test creating a task with priority."""
+        task_data = TaskCreate(title="High Priority Task", priority="high")
+        task = task_service.create_task(task_data)
+
+        assert task.title == "High Priority Task"
+        assert task.priority == "high"
+
+    def test_create_task_with_tags(self, task_service, user_id):
+        """Test creating a task with tags."""
+        task_data = TaskCreate(title="Tagged Task", tags=["work", "urgent"])
+        task = task_service.create_task(task_data)
+
+        assert task.title == "Tagged Task"
+        assert task.tags == ["work", "urgent"]
+
 
 class TestTaskServiceGet:
     """Test TaskService.get_task."""
@@ -53,6 +69,7 @@ class TestTaskServiceGet:
         other_task = Task(
             user_id=other_user_id,
             title="Other User's Task",
+            tags=[],
         )
         session.add(other_task)
         session.commit()
@@ -109,7 +126,7 @@ class TestTaskServiceList:
         time.sleep(0.01)
         task2 = task_service.create_task(TaskCreate(title="Second"))
 
-        tasks = task_service.list_tasks(sort="created", order="desc")
+        tasks = task_service.list_tasks(sort_by="created_at", order="desc")
         assert tasks[0].id == task2.id  # Most recent first
         assert tasks[-1].id == task1.id
 
@@ -120,7 +137,7 @@ class TestTaskServiceList:
         time.sleep(0.01)
         task2 = task_service.create_task(TaskCreate(title="Second"))
 
-        tasks = task_service.list_tasks(sort="created", order="asc")
+        tasks = task_service.list_tasks(sort_by="created_at", order="asc")
         assert tasks[0].id == task1.id  # Oldest first
         assert tasks[-1].id == task2.id
 
@@ -129,9 +146,37 @@ class TestTaskServiceList:
         task_service.create_task(TaskCreate(title="Zebra"))
         task_service.create_task(TaskCreate(title="Apple"))
 
-        tasks = task_service.list_tasks(sort="title", order="asc")
+        tasks = task_service.list_tasks(sort_by="title", order="asc")
         assert tasks[0].title == "Apple"
         assert tasks[-1].title == "Zebra"
+
+    def test_list_tasks_filter_by_priority(self, task_service):
+        """Test filtering by priority."""
+        task_service.create_task(TaskCreate(title="Low Task", priority="low"))
+        high_task = task_service.create_task(TaskCreate(title="High Task", priority="high"))
+
+        tasks = task_service.list_tasks(priority="high")
+        assert len(tasks) >= 1
+        assert any(t.id == high_task.id for t in tasks)
+        assert all(t.priority == "high" for t in tasks)
+
+    def test_list_tasks_filter_by_tags(self, task_service):
+        """Test filtering by tags."""
+        task_service.create_task(TaskCreate(title="Work Task", tags=["work"]))
+        personal_task = task_service.create_task(TaskCreate(title="Personal Task", tags=["personal"]))
+
+        tasks = task_service.list_tasks(tags=["personal"])
+        assert len(tasks) >= 1
+        assert any(t.id == personal_task.id for t in tasks)
+
+    def test_list_tasks_search(self, task_service):
+        """Test search functionality."""
+        task_service.create_task(TaskCreate(title="Buy groceries"))
+        meeting_task = task_service.create_task(TaskCreate(title="Team meeting", description="Discuss project"))
+
+        tasks = task_service.list_tasks(search="meeting")
+        assert len(tasks) >= 1
+        assert any(t.id == meeting_task.id for t in tasks)
 
     def test_list_tasks_user_isolation(self, session, user_id, other_user_id):
         """Test user isolation in list."""
@@ -172,6 +217,20 @@ class TestTaskServiceUpdate:
         assert updated.title == "New Title"
         assert updated.description == sample_task.description  # Unchanged
 
+    def test_update_task_priority(self, task_service, sample_task):
+        """Test updating task priority."""
+        update_data = TaskUpdate(priority="urgent")
+        updated = task_service.update_task(sample_task.id, update_data)
+
+        assert updated.priority == "urgent"
+
+    def test_update_task_tags(self, task_service, sample_task):
+        """Test updating task tags."""
+        update_data = TaskUpdate(tags=["work", "important"])
+        updated = task_service.update_task(sample_task.id, update_data)
+
+        assert updated.tags == ["work", "important"]
+
     def test_update_task_not_found(self, task_service):
         """Test updating non-existent task."""
         update_data = TaskUpdate(title="New Title")
@@ -194,23 +253,26 @@ class TestTaskServiceToggleComplete:
         """Test toggling completion status."""
         assert sample_task.completed is False
 
-        updated = task_service.toggle_complete(sample_task.id, TaskComplete(completed=True))
-        assert updated.completed is True
+        # toggle_complete returns (task, next_recurring_task)
+        task, next_task = task_service.toggle_complete(sample_task.id, TaskComplete(completed=True))
+        assert task.completed is True
+        assert next_task is None  # No recurrence pattern
 
-        updated = task_service.toggle_complete(sample_task.id, TaskComplete(completed=False))
-        assert updated.completed is False
+        task, _ = task_service.toggle_complete(sample_task.id, TaskComplete(completed=False))
+        assert task.completed is False
 
     def test_toggle_complete_default(self, task_service, sample_task):
         """Test toggle without explicit value."""
         assert sample_task.completed is False
 
-        updated = task_service.toggle_complete(sample_task.id, TaskComplete())
-        assert updated.completed is True  # Should toggle
+        # toggle_complete returns (task, next_recurring_task)
+        task, _ = task_service.toggle_complete(sample_task.id, TaskComplete())
+        assert task.completed is True  # Should toggle
 
     def test_toggle_complete_not_found(self, task_service):
         """Test toggling non-existent task."""
         result = task_service.toggle_complete(99999, TaskComplete(completed=True))
-        assert result is None
+        assert result == (None, None)
 
 
 class TestTaskServiceDelete:
@@ -243,3 +305,22 @@ class TestTaskServiceDelete:
         service = TaskService(session, user_id)
         task = service.get_task(sample_task.id)
         assert task is not None
+
+
+class TestTaskServiceGetAllTags:
+    """Test TaskService.get_all_tags."""
+
+    def test_get_all_tags_empty(self, task_service):
+        """Test getting tags when no tasks have tags."""
+        tags = task_service.get_all_tags()
+        assert tags == []
+
+    def test_get_all_tags_success(self, task_service):
+        """Test getting all unique tags."""
+        task_service.create_task(TaskCreate(title="Task 1", tags=["work", "urgent"]))
+        task_service.create_task(TaskCreate(title="Task 2", tags=["personal", "work"]))
+
+        tags = task_service.get_all_tags()
+        assert "work" in tags
+        assert "urgent" in tags
+        assert "personal" in tags

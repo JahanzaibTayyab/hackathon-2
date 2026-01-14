@@ -2,27 +2,31 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogOut, MessageSquare, Plus } from "lucide-react";
-import type { TaskOrder, TaskSort, TaskStatus } from "@/types/task";
+import type { TaskFilters as TaskFiltersType } from "@/types/task";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { TaskFilters } from "@/components/tasks/task-filters";
 import { TaskForm } from "@/components/tasks/task-form";
 import { TaskList } from "@/components/tasks/task-list";
+import { TaskSearch } from "@/components/tasks/task-search";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTasks } from "@/lib/hooks/use-tasks";
+import { useTags, useTasksWithFilters } from "@/lib/hooks/use-tasks";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [status, setStatus] = useState<TaskStatus>("all");
-  const [sort, setSort] = useState<TaskSort>("created");
-  const [order, setOrder] = useState<TaskOrder>("desc");
+  const [filters, setFilters] = useState<TaskFiltersType>({
+    status: "all",
+    sort_by: "created_at",
+    order: "desc",
+  });
   const [showForm, setShowForm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const { data, isLoading, error } = useTasks(status, sort, order);
+  const { data, isLoading, error } = useTasksWithFilters(filters);
+  const { data: availableTags = [] } = useTags();
 
   useEffect(() => {
     // Check authentication
@@ -38,6 +42,10 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await authClient.signOut();
     router.push("/login");
+  };
+
+  const handleSearchChange = (search: string) => {
+    setFilters((prev) => ({ ...prev, search: search || undefined }));
   };
 
   if (!isAuthenticated) {
@@ -69,13 +77,18 @@ export default function DashboardPage() {
         </div>
 
         <div className="mb-6 space-y-4">
+          {/* Search bar */}
+          <TaskSearch
+            value={filters.search || ""}
+            onChange={handleSearchChange}
+            placeholder="Search tasks by title or description..."
+          />
+
+          {/* Filters */}
           <TaskFilters
-            status={status}
-            sort={sort}
-            order={order}
-            onStatusChange={setStatus}
-            onSortChange={setSort}
-            onOrderChange={setOrder}
+            filters={filters}
+            onFiltersChange={setFilters}
+            availableTags={availableTags}
           />
 
           {!showForm && (
@@ -92,6 +105,7 @@ export default function DashboardPage() {
             <TaskForm
               onCancel={() => setShowForm(false)}
               onSuccess={() => setShowForm(false)}
+              availableTags={availableTags}
             />
           )}
         </div>
@@ -117,7 +131,11 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <TaskList tasks={data?.tasks || []} isLoading={isLoading} />
+            <TaskList
+              tasks={data?.tasks || []}
+              isLoading={isLoading}
+              availableTags={availableTags}
+            />
           </CardContent>
         </Card>
       </div>

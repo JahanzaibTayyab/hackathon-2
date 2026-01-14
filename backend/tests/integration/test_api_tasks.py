@@ -102,8 +102,8 @@ class TestListTasks:
     def test_list_tasks_with_data(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test listing tasks with data."""
         # Create tasks directly
-        task1 = Task(user_id=test_user_id, title="Task 1")
-        task2 = Task(user_id=test_user_id, title="Task 2", completed=True)
+        task1 = Task(user_id=test_user_id, tags=[], title="Task 1")
+        task2 = Task(user_id=test_user_id, tags=[], title="Task 2", completed=True)
         test_session.add(task1)
         test_session.add(task2)
         test_session.commit()
@@ -116,8 +116,8 @@ class TestListTasks:
 
     def test_list_tasks_filter_pending(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test filtering by pending status."""
-        task1 = Task(user_id=test_user_id, title="Pending", completed=False)
-        task2 = Task(user_id=test_user_id, title="Completed", completed=True)
+        task1 = Task(user_id=test_user_id, tags=[], title="Pending", completed=False)
+        task2 = Task(user_id=test_user_id, tags=[], title="Completed", completed=True)
         test_session.add(task1)
         test_session.add(task2)
         test_session.commit()
@@ -130,8 +130,8 @@ class TestListTasks:
 
     def test_list_tasks_filter_completed(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test filtering by completed status."""
-        task1 = Task(user_id=test_user_id, title="Pending", completed=False)
-        task2 = Task(user_id=test_user_id, title="Completed", completed=True)
+        task1 = Task(user_id=test_user_id, tags=[], title="Pending", completed=False)
+        task2 = Task(user_id=test_user_id, tags=[], title="Completed", completed=True)
         test_session.add(task1)
         test_session.add(task2)
         test_session.commit()
@@ -144,13 +144,13 @@ class TestListTasks:
 
     def test_list_tasks_sort_title(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test sorting by title."""
-        task1 = Task(user_id=test_user_id, title="Zebra")
-        task2 = Task(user_id=test_user_id, title="Apple")
+        task1 = Task(user_id=test_user_id, tags=[], title="Zebra")
+        task2 = Task(user_id=test_user_id, tags=[], title="Apple")
         test_session.add(task1)
         test_session.add(task2)
         test_session.commit()
 
-        response = client.get("/api/v1/tasks?sort=title&order=asc")
+        response = client.get("/api/v1/tasks?sort_by=title&order=asc")
         assert response.status_code == 200
         data = response.json()
         assert data["tasks"][0]["title"] == "Apple"
@@ -162,7 +162,7 @@ class TestGetTask:
 
     def test_get_task_success(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test getting a task successfully."""
-        task = Task(user_id=test_user_id, title="Test Task")
+        task = Task(user_id=test_user_id, tags=[], title="Test Task")
         test_session.add(task)
         test_session.commit()
         test_session.refresh(task)
@@ -184,7 +184,7 @@ class TestUpdateTask:
 
     def test_update_task_success(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test updating a task successfully."""
-        task = Task(user_id=test_user_id, title="Original")
+        task = Task(user_id=test_user_id, tags=[], title="Original")
         test_session.add(task)
         test_session.commit()
         test_session.refresh(task)
@@ -200,7 +200,7 @@ class TestUpdateTask:
 
     def test_update_task_partial(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test partial update."""
-        task = Task(user_id=test_user_id, title="Original", description="Original Desc")
+        task = Task(user_id=test_user_id, tags=[], title="Original", description="Original Desc")
         test_session.add(task)
         test_session.commit()
         test_session.refresh(task)
@@ -228,7 +228,7 @@ class TestToggleComplete:
 
     def test_toggle_complete_success(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test toggling completion status."""
-        task = Task(user_id=test_user_id, title="Task", completed=False)
+        task = Task(user_id=test_user_id, tags=[], title="Task", completed=False)
         test_session.add(task)
         test_session.commit()
         test_session.refresh(task)
@@ -255,7 +255,7 @@ class TestDeleteTask:
 
     def test_delete_task_success(self, client: TestClient, test_session: Session, test_user_id: str):
         """Test deleting a task successfully."""
-        task = Task(user_id=test_user_id, title="To Delete")
+        task = Task(user_id=test_user_id, tags=[], title="To Delete")
         test_session.add(task)
         test_session.commit()
         test_session.refresh(task)

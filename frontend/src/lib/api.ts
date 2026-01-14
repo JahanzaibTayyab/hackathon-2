@@ -2,11 +2,13 @@ import type {
   Task,
   TaskComplete,
   TaskCreate,
+  TaskFilters,
   TaskListResponse,
   TaskOrder,
   TaskSort,
   TaskStatus,
   TaskUpdate,
+  ToggleCompleteResponse,
 } from "@/types/task";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -58,18 +60,67 @@ export const api = {
   // Task operations
   tasks: {
     list: async (
+      filters: TaskFilters = {},
+      getToken?: () => Promise<string | null>
+    ): Promise<TaskListResponse> => {
+      const params = new URLSearchParams();
+
+      // Add filter parameters
+      if (filters.status && filters.status !== "all") {
+        params.append("status", filters.status);
+      }
+      if (filters.priority) {
+        params.append("priority", filters.priority);
+      }
+      if (filters.tags && filters.tags.length > 0) {
+        filters.tags.forEach((tag) => params.append("tags", tag));
+      }
+      if (filters.due_before) {
+        params.append("due_before", filters.due_before);
+      }
+      if (filters.due_after) {
+        params.append("due_after", filters.due_after);
+      }
+      if (filters.search) {
+        params.append("search", filters.search);
+      }
+      if (filters.sort_by) {
+        params.append("sort_by", filters.sort_by);
+      }
+      if (filters.order) {
+        params.append("order", filters.order);
+      }
+
+      const queryString = params.toString();
+      const response = await fetchWithAuth(
+        `/api/v1/tasks${queryString ? `?${queryString}` : ""}`,
+        {},
+        getToken
+      );
+      return response.json();
+    },
+
+    // Legacy list method for backwards compatibility
+    listLegacy: async (
       status: TaskStatus = "all",
       sort: TaskSort = "created",
       order: TaskOrder = "desc",
       getToken?: () => Promise<string | null>
     ): Promise<TaskListResponse> => {
-      const params = new URLSearchParams({ status, sort, order });
-      const response = await fetchWithAuth(
-        `/api/v1/tasks?${params}`,
-        {},
+      // Map legacy sort values to new sort_by values
+      const sortByMap: Record<string, string> = {
+        created: "created_at",
+        title: "title",
+        updated: "updated_at",
+      };
+      return api.tasks.list(
+        {
+          status,
+          sort_by: sortByMap[sort] as TaskFilters["sort_by"],
+          order,
+        },
         getToken
       );
-      return response.json();
     },
 
     get: async (
@@ -115,7 +166,7 @@ export const api = {
       id: number,
       data: TaskComplete | undefined,
       getToken?: () => Promise<string | null>
-    ): Promise<Task> => {
+    ): Promise<ToggleCompleteResponse> => {
       const response = await fetchWithAuth(
         `/api/v1/tasks/${id}/complete`,
         {
@@ -138,6 +189,14 @@ export const api = {
         },
         getToken
       );
+    },
+
+    // Get all unique tags for the user
+    getTags: async (
+      getToken?: () => Promise<string | null>
+    ): Promise<string[]> => {
+      const response = await fetchWithAuth(`/api/v1/tasks/tags`, {}, getToken);
+      return response.json();
     },
   },
 };

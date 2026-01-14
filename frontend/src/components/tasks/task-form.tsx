@@ -7,25 +7,48 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { Task, TaskCreate, TaskUpdate } from "@/types/task";
+import type {
+  RecurrencePattern,
+  Task,
+  TaskCreate,
+  TaskPriority,
+  TaskUpdate,
+} from "@/types/task";
 import { useCreateTask, useUpdateTask } from "@/lib/hooks/use-tasks";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "./date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PrioritySelect } from "./priority-select";
+import { RecurrencePicker } from "./recurrence-picker";
+import { TagInput } from "./tag-input";
 import { Textarea } from "@/components/ui/textarea";
-import { X } from "lucide-react";
 
 interface TaskFormProps {
   task?: Task;
   onCancel: () => void;
   onSuccess: () => void;
+  availableTags?: string[];
 }
 
-export function TaskForm({ task, onCancel, onSuccess }: TaskFormProps) {
+export function TaskForm({
+  task,
+  onCancel,
+  onSuccess,
+  availableTags = [],
+}: TaskFormProps) {
   const [title, setTitle] = useState(task?.title || "");
   const [description, setDescription] = useState(task?.description || "");
+  const [priority, setPriority] = useState<TaskPriority>(
+    task?.priority || "medium"
+  );
+  const [dueDate, setDueDate] = useState<string | null>(task?.due_date || null);
+  const [tags, setTags] = useState<string[]>(task?.tags || []);
+  const [recurrencePattern, setRecurrencePattern] =
+    useState<RecurrencePattern | null>(task?.recurrence_pattern || null);
+
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
 
@@ -33,6 +56,10 @@ export function TaskForm({ task, onCancel, onSuccess }: TaskFormProps) {
     if (task) {
       setTitle(task.title);
       setDescription(task.description || "");
+      setPriority(task.priority || "medium");
+      setDueDate(task.due_date || null);
+      setTags(task.tags || []);
+      setRecurrencePattern(task.recurrence_pattern || null);
     }
   }, [task]);
 
@@ -44,19 +71,22 @@ export function TaskForm({ task, onCancel, onSuccess }: TaskFormProps) {
     }
 
     try {
+      const taskData = {
+        title: title.trim(),
+        description: description.trim() || null,
+        priority,
+        due_date: dueDate,
+        tags,
+        recurrence_pattern: recurrencePattern,
+      };
+
       if (task) {
         await updateTask.mutateAsync({
           id: task.id,
-          data: {
-            title: title.trim(),
-            description: description.trim() || null,
-          },
+          data: taskData,
         });
       } else {
-        await createTask.mutateAsync({
-          title: title.trim(),
-          description: description.trim() || null,
-        });
+        await createTask.mutateAsync(taskData);
       }
       onSuccess();
     } catch (error) {
@@ -85,6 +115,7 @@ export function TaskForm({ task, onCancel, onSuccess }: TaskFormProps) {
               disabled={isLoading}
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -97,7 +128,47 @@ export function TaskForm({ task, onCancel, onSuccess }: TaskFormProps) {
               disabled={isLoading}
             />
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <PrioritySelect
+                value={priority}
+                onChange={setPriority}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <DatePicker
+                value={dueDate}
+                onChange={setDueDate}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <TagInput
+              value={tags}
+              onChange={setTags}
+              disabled={isLoading}
+              suggestions={availableTags}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Repeat</Label>
+            <RecurrencePicker
+              value={recurrencePattern}
+              onChange={setRecurrencePattern}
+              disabled={isLoading}
+            />
+          </div>
         </CardContent>
+
         <CardFooter className="flex justify-end gap-2">
           <Button
             type="button"

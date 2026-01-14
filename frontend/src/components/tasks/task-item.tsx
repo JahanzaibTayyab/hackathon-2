@@ -5,15 +5,20 @@ import { Check, Edit2, Trash2 } from "lucide-react";
 import { useDeleteTask, useToggleComplete } from "@/lib/hooks/use-tasks";
 
 import { Button } from "@/components/ui/button";
+import { DueDateDisplay } from "./date-picker";
+import { PriorityBadge } from "./priority-select";
+import { RecurrenceBadge } from "./recurrence-picker";
 import type { Task } from "@/types/task";
+import { TagDisplay } from "./tag-input";
 import { TaskForm } from "./task-form";
 import { useState } from "react";
 
 interface TaskItemProps {
   task: Task;
+  availableTags?: string[];
 }
 
-export function TaskItem({ task }: TaskItemProps) {
+export function TaskItem({ task, availableTags = [] }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const toggleComplete = useToggleComplete();
   const deleteTask = useDeleteTask();
@@ -37,12 +42,17 @@ export function TaskItem({ task }: TaskItemProps) {
         task={task}
         onCancel={() => setIsEditing(false)}
         onSuccess={() => setIsEditing(false)}
+        availableTags={availableTags}
       />
     );
   }
 
   return (
-    <Card className={task.completed ? "opacity-60" : ""}>
+    <Card
+      className={`${task.completed ? "opacity-60" : ""} ${
+        task.is_overdue && !task.completed ? "border-red-500/50" : ""
+      }`}
+    >
       <CardContent className="flex items-start gap-4 p-4">
         <Button
           variant="ghost"
@@ -57,18 +67,31 @@ export function TaskItem({ task }: TaskItemProps) {
             }`}
           />
         </Button>
-        <div className="flex-1 space-y-1">
-          <h3
-            className={`font-medium ${
-              task.completed ? "line-through text-muted-foreground" : ""
-            }`}
-          >
-            {task.title}
-          </h3>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-start gap-2">
+            <h3
+              className={`font-medium flex-1 ${
+                task.completed ? "line-through text-muted-foreground" : ""
+              }`}
+            >
+              {task.title}
+            </h3>
+            <PriorityBadge priority={task.priority} />
+          </div>
           {task.description && (
             <p className="text-sm text-muted-foreground">{task.description}</p>
           )}
-          <div className="flex gap-2 text-xs text-muted-foreground">
+
+          {/* Tags */}
+          <TagDisplay tags={task.tags} />
+
+          {/* Metadata row */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <DueDateDisplay
+              dueDate={task.due_date}
+              isOverdue={task.is_overdue || false}
+            />
+            <RecurrenceBadge pattern={task.recurrence_pattern} />
             <span>
               Created: {new Date(task.created_at).toLocaleDateString()}
             </span>

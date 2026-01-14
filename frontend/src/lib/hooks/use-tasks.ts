@@ -5,14 +5,14 @@ import type {
   Task,
   TaskComplete,
   TaskCreate,
+  TaskFilters,
   TaskOrder,
   TaskSort,
   TaskStatus,
   TaskUpdate,
+  ToggleCompleteResponse,
 } from "@/types/task";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { authClient } from "@/lib/auth-client";
 
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -41,11 +41,39 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 
+// Main hook with advanced filters
+export function useTasksWithFilters(filters: TaskFilters = {}) {
+  return useQuery({
+    queryKey: ["tasks", filters],
+    queryFn: async () => {
+      const token = await getAuthToken();
+      if (!token) {
+        throw new APIError("Not authenticated", 401);
+      }
+      return api.tasks.list(filters, getAuthToken);
+    },
+  });
+}
+
+// Legacy hook for backwards compatibility
 export function useTasks(
   status: TaskStatus = "all",
   sort: TaskSort = "created",
   order: TaskOrder = "desc"
 ) {
+  // Map legacy sort values to new sort_by values
+  const sortByMap: Record<string, TaskFilters["sort_by"]> = {
+    created: "created_at",
+    title: "title",
+    updated: "created_at", // updated is mapped to created_at for now
+  };
+
+  const filters: TaskFilters = {
+    status,
+    sort_by: sortByMap[sort],
+    order,
+  };
+
   return useQuery({
     queryKey: ["tasks", status, sort, order],
     queryFn: async () => {
@@ -53,7 +81,7 @@ export function useTasks(
       if (!token) {
         throw new APIError("Not authenticated", 401);
       }
-      return api.tasks.list(status, sort, order, getAuthToken);
+      return api.tasks.list(filters, getAuthToken);
     },
   });
 }
@@ -85,6 +113,7 @@ export function useCreateTask() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
     },
   });
 }
@@ -103,6 +132,7 @@ export function useUpdateTask() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
     },
   });
 }
@@ -111,16 +141,26 @@ export function useToggleComplete() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data?: TaskComplete }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data?: TaskComplete;
+    }): Promise<ToggleCompleteResponse> => {
       const token = await getAuthToken();
       if (!token) {
         throw new APIError("Not authenticated", 401);
       }
       return api.tasks.toggleComplete(id, data, getAuthToken);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (response, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task", variables.id] });
+      // If a recurring task created a next task, it will be in the tasks list
+      if (response.next_task) {
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      }
     },
   });
 }
@@ -138,6 +178,20 @@ export function useDeleteTask() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+// Hook for fetching all unique tags
+export function useTags() {
+  return useQuery({
+    queryKey: ["tags"],
+    queryFn: async () => {
+      const token = await getAuthToken();
+      if (!token) {
+        throw new APIError("Not authenticated", 401);
+      }
+      return api.tasks.getTags(getAuthToken);
     },
   });
 }

@@ -6,9 +6,10 @@ import { TaskItem } from "./task-item";
 interface TaskListProps {
   tasks: Task[];
   isLoading?: boolean;
+  availableTags?: string[];
 }
 
-export function TaskList({ tasks, isLoading }: TaskListProps) {
+export function TaskList({ tasks, isLoading, availableTags = [] }: TaskListProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -35,7 +36,7 @@ export function TaskList({ tasks, isLoading }: TaskListProps) {
   return (
     <div className="space-y-4">
       {tasks.map((task) => (
-        <TaskItem key={task.id} task={task} />
+        <TaskItem key={task.id} task={task} availableTags={availableTags} />
       ))}
     </div>
   );
