@@ -1,5 +1,5 @@
 # Phase V: CI/CD Pipeline for Todo Application
-# Builds, tests, and deploys to Azure AKS with Dapr + Kafka
+# Builds, tests, and optionally deploys to cloud (Azure AKS or GKE)
 name: Build and Deploy
 
 on:
@@ -8,8 +8,15 @@ on:
   pull_request:
     branches: [main]
 
+# Required for pushing to GitHub Container Registry
+permissions:
+  contents: read
+  packages: write
+
 env:
-  REGISTRY: ${{ vars.ACR_REGISTRY }} # e.g., todoappacr.azurecr.io
+  # Use GitHub Container Registry (free) or Azure ACR if configured
+  REGISTRY: ${{ vars.ACR_REGISTRY || 'ghcr.io' }}
+  IMAGE_PREFIX: ${{ vars.ACR_REGISTRY && '' || format('{0}/', github.repository_owner) }}
   FRONTEND_IMAGE: todo-frontend
   BACKEND_IMAGE: todo-backend
   HELM_CHART_PATH: ./helm-chart/todo-app
@@ -92,6 +99,7 @@ jobs:
     name: Build & Push Docker Images
     needs: build
     runs-on: ubuntu-latest
+    # Only run on main branch pushes
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     outputs:
@@ -104,10 +112,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Login to GitHub Container Registry (free, always available)
+      - name: Login to GitHub Container Registry
+        if: vars.ACR_REGISTRY == ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Login to Azure Container Registry (if configured)
       - name: Login to Azure Container Registry
+        if: vars.ACR_REGISTRY != ''
         uses: azure/docker-login@v2
         with:
-          login-server: ${{ env.REGISTRY }}
+          login-server: ${{ vars.ACR_REGISTRY }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
@@ -123,8 +142,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}${{ env.FRONTEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -134,8 +153,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}${{ env.BACKEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -146,6 +165,8 @@ jobs:
     name: Deploy to Staging
     needs: docker
     runs-on: ubuntu-latest
+    # Only run if Azure credentials are configured
+    if: vars.AZURE_RESOURCE_GROUP != '' && vars.AKS_CLUSTER_NAME != ''
 
     steps:
       - name: Checkout code
@@ -209,6 +230,8 @@ jobs:
     name: Deploy to Production
     needs: deploy-staging
     runs-on: ubuntu-latest
+    # Only run if Azure credentials are configured
+    if: vars.AZURE_RESOURCE_GROUP != '' && vars.AKS_CLUSTER_NAME != ''
 
     steps:
       - name: Checkout code
