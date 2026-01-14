@@ -65,19 +65,22 @@ export function PrioritySelect({ value, onChange, disabled }: PrioritySelectProp
 }
 
 // Badge version for displaying priority in task items
-export function PriorityBadge({ priority }: { priority: TaskPriority }) {
-  const config = PRIORITY_CONFIG[priority];
+export function PriorityBadge({ priority }: { priority: TaskPriority | undefined | null }) {
+  // Default to medium if priority is not set
+  const effectivePriority = priority ?? "medium";
+  const config = PRIORITY_CONFIG[effectivePriority];
+  if (!config) return null;
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${config.bgColor} ${config.color}`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full ${
-          priority === "low"
+          effectivePriority === "low"
             ? "bg-gray-500"
-            : priority === "medium"
+            : effectivePriority === "medium"
             ? "bg-blue-500"
-            : priority === "high"
+            : effectivePriority === "high"
             ? "bg-orange-500"
             : "bg-red-500"
         }`}

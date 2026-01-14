@@ -19,11 +19,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-MINIKUBE_CPUS=6
-MINIKUBE_MEMORY=12288
+MINIKUBE_CPUS=4
+MINIKUBE_MEMORY=7168
 KAFKA_NAMESPACE="kafka"
 APP_NAMESPACE="default"
-STRIMZI_VERSION="0.39.0"
+STRIMZI_VERSION="0.46.0"
 
 # Functions
 log_info() {
@@ -186,6 +186,9 @@ create_kafka_topics() {
 deploy_dapr_components() {
     log_info "Deploying Dapr components..."
 
+    # Apply Dapr configuration (disable mTLS for local dev)
+    kubectl apply -f helm-chart/dapr-components/appconfig.yaml
+
     # Apply Dapr pub/sub component
     kubectl apply -f helm-chart/dapr-components/pubsub.yaml
 
@@ -267,6 +270,9 @@ show_access_info() {
     echo "  Frontend: http://$(minikube ip):30080"
     echo "  Backend API: http://$(minikube ip):30080/api/v1"
     echo ""
+    log_warning "On macOS with Docker driver, run 'minikube tunnel' in a separate terminal"
+    echo "  Then access: http://localhost:30080"
+    echo ""
     log_info "Useful commands:"
     echo "  View pods:        kubectl get pods"
     echo "  View logs:        kubectl logs -f deployment/todo-release-backend"
@@ -274,7 +280,7 @@ show_access_info() {
     echo "  Kafka topics:     kubectl get kafkatopics -n kafka"
     echo ""
     log_info "To test Kafka events:"
-    echo "  kubectl exec -it todo-kafka-kafka-0 -n kafka -- \\"
+    echo "  kubectl exec -it todo-kafka-dual-role-0 -n kafka -- \\"
     echo "    bin/kafka-console-consumer.sh \\"
     echo "    --bootstrap-server localhost:9092 \\"
     echo "    --topic task-events \\"

@@ -190,13 +190,13 @@ dapr:
   backend:
     appId: "backend"
     appPort: "8000"
-    enableMtls: "true"
+    enableMtls: "false"  # Disable mTLS for local development
     logLevel: "info"
   # Frontend Dapr sidecar configuration (optional)
   frontend:
     appId: "frontend"
     appPort: "3000"
-    enableMtls: "true"
+    enableMtls: "false"  # Disable mTLS for local development
     logLevel: "info"
 
 # Kafka Configuration (when using Dapr with Kafka)

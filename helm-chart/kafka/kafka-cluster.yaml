@@ -1,14 +1,16 @@
 # Strimzi Kafka Cluster for Todo App - Local Development
-# Requires Strimzi Operator to be installed first
+# Uses KRaft mode (no ZooKeeper) with Strimzi 0.46+
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: todo-kafka
   namespace: kafka
+  annotations:
+    strimzi.io/kraft: "enabled"
+    strimzi.io/node-pools: "enabled"
 spec:
   kafka:
-    version: 3.6.0
-    replicas: 1  # Single replica for local development
+    version: 4.0.1
     listeners:
       - name: plain
         port: 9092
@@ -27,45 +29,31 @@ spec:
       transaction.state.log.min.isr: 1
       default.replication.factor: 1
       min.insync.replicas: 1
-      inter.broker.protocol.version: "3.6"
-      # Performance tuning for local development
       log.retention.hours: 168  # 7 days
-      log.segment.bytes: 1073741824  # 1GB
       num.partitions: 3
-    storage:
-      type: ephemeral  # Use ephemeral storage for local dev
-    resources:
-      requests:
-        memory: 512Mi
-        cpu: 250m
-      limits:
-        memory: 1Gi
-        cpu: 500m
-  zookeeper:
-    replicas: 1
-    storage:
-      type: ephemeral
-    resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 250m
   entityOperator:
-    topicOperator:
-      resources:
-        requests:
-          memory: 128Mi
-          cpu: 100m
-        limits:
-          memory: 256Mi
-          cpu: 250m
-    userOperator:
-      resources:
-        requests:
-          memory: 128Mi
-          cpu: 100m
-        limits:
-          memory: 256Mi
-          cpu: 250m
+    topicOperator: {}
+    userOperator: {}
+---
+# KafkaNodePool for KRaft mode
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: todo-kafka
+spec:
+  replicas: 1
+  roles:
+    - controller
+    - broker
+  storage:
+    type: ephemeral
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m

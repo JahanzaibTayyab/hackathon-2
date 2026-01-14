@@ -56,7 +56,14 @@
       "Bash(/bin/bash)",
       "Bash(export PATH=\"$HOME/.dapr/bin:$PATH\")",
       "Bash(kubectl create:*)",
-      "Bash(kubectl wait:*)"
+      "Bash(kubectl wait:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(helm upgrade:*)",
+      "Bash(kubectl config current-context:*)",
+      "Bash(helm list:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(kubectl rollout:*)",
+      "Bash(kubectl run:*)"
     ]
   }
 }

@@ -90,6 +90,10 @@ describe("TaskForm", () => {
       expect(mockCreateMutateAsync).toHaveBeenCalledWith({
         title: "New Task",
         description: null,
+        due_date: null,
+        priority: "medium",
+        tags: [],
+        recurrence_pattern: null,
       });
       expect(mockOnSuccess).toHaveBeenCalled();
     });
@@ -126,6 +130,10 @@ describe("TaskForm", () => {
       expect(mockCreateMutateAsync).toHaveBeenCalledWith({
         title: "Task Without Description",
         description: null,
+        due_date: null,
+        priority: "medium",
+        tags: [],
+        recurrence_pattern: null,
       });
     });
   });

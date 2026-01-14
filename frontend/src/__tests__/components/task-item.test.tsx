@@ -53,6 +53,10 @@ describe("TaskItem", () => {
     title: "Test Task",
     description: "Test Description",
     completed: false,
+    priority: "medium",
+    tags: [],
+    due_date: null,
+    recurrence_pattern: null,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
   };

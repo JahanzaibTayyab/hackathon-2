@@ -1,0 +1,18 @@
+# Dapr Configuration - Disable mTLS for local development
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: appconfig
+  namespace: default
+spec:
+  # Disable mTLS for local Kubernetes development
+  mtls:
+    enabled: false
+    controlPlaneTrustDomain: "cluster.local"
+    sentryAddress: "dapr-sentry.dapr-system.svc.cluster.local:443"
+  # Tracing configuration (optional)
+  tracing:
+    samplingRate: "1"
+  # Metrics configuration
+  metrics:
+    enabled: true
